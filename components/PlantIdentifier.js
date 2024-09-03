@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import PlantInfo from "./PlantInfo";
 import { identifyPlant } from "../lib/gemini";
-import { Camera, Upload, Loader } from "lucide-react";
+import { Camera, Upload, Loader, RotateCcw } from "lucide-react";
 
 const PlantIdentifier = () => {
   const [image, setImage] = useState(null);
@@ -14,6 +14,7 @@ const PlantIdentifier = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [cameraPermission, setCameraPermission] = useState("prompt");
   const [videoStream, setVideoStream] = useState(null);
+  const [facingMode, setFacingMode] = useState("environment");
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
 
@@ -65,9 +66,12 @@ const PlantIdentifier = () => {
   const initializeCamera = async () => {
     try {
       console.log("Initializing camera...");
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
+      const constraints = {
+        video: isMobile
+          ? { facingMode: facingMode }
+          : { width: { ideal: 1280 }, height: { ideal: 720 } },
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log("Camera stream obtained:", stream);
       setVideoStream(stream);
       setShowCamera(true);
@@ -113,6 +117,11 @@ const PlantIdentifier = () => {
       console.error("Video element not found when capturing image");
       setError("Unable to capture image. Please try again.");
     }
+  };
+
+  const switchCamera = () => {
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+    initializeCamera();
   };
 
   const handleIdentify = async () => {
@@ -199,16 +208,53 @@ const PlantIdentifier = () => {
               playsInline
             />
           </div>
-          <button
-            onClick={captureImage}
-            className="w-full flex justify-center items-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-300"
-          >
-            <Camera className="mr-2" size={20} />
-            Capture Image
-          </button>
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={captureImage}
+              className="flex-1 flex justify-center items-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-300"
+            >
+              <Camera className="mr-2" size={20} />
+              Capture Image
+            </button>
+            {isMobile && (
+              <button
+                onClick={switchCamera}
+                className="flex-1 flex justify-center items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300"
+              >
+                <RotateCcw className="mr-2" size={20} />
+                Switch Camera
+              </button>
+            )}
+          </div>
         </div>
       )}
       {error && <p className="text-red-500 mt-2">{error}</p>}
+      {isMobile && image && !showCamera && (
+        <div className="mt-4 space-y-4">
+          <img
+            src={image}
+            alt="Captured plant"
+            className="w-full h-64 object-cover rounded-md"
+          />
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={() => {
+                setImage(null);
+                handleCameraCapture();
+              }}
+              className="flex-1 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-300"
+            >
+              Retake Photo
+            </button>
+            <button
+              onClick={handleIdentify}
+              className="flex-1 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-300"
+            >
+              Identify Plant
+            </button>
+          </div>
+        </div>
+      )}
       {plantInfo && <PlantInfo info={plantInfo} />}
     </div>
   );
