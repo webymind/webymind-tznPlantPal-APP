@@ -1,5 +1,4 @@
 import React from "react";
-import Link from "react";
 import { Leaf, Heart, Gift } from "lucide-react";
 
 const Description = () => {
@@ -31,8 +30,8 @@ const Description = () => {
           </div>
           <p>
             Founded by the visionary Mireille LK, Tizardin.mu is more than just
-            a plant nursery - it's a community for those who see the beauty in
-            every leaf and petal. This app is our way of sharing our love for
+            a plant nursery - it&apos;s a community for those who see the beauty
+            in every leaf and petal. This app is our way of sharing our love for
             plants with every corner of our beautiful island.
           </p>
           <div className="flex items-center justify-center text-[#82be34]">
@@ -42,7 +41,7 @@ const Description = () => {
             </span>
           </div>
           <p>
-            Whether you're a seasoned gardener or just starting your green
+            Whether you&apos;re a seasoned gardener or just starting your green
             journey, this app is here to help you identify and learn about the
             diverse plant species that make Mauritius a tropical paradise.
           </p>
