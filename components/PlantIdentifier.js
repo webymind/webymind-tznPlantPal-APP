@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import PlantInfo from "./PlantInfo";
 import { identifyPlant } from "../lib/gemini";
-import { Camera, Upload, Loader, RotateCcw, Download } from "lucide-react";
+import { Camera, Upload, Loader } from "lucide-react";
 
 const PlantIdentifier = () => {
   const [image, setImage] = useState(null);
@@ -11,13 +11,11 @@ const PlantIdentifier = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
-  const [facingMode, setFacingMode] = useState("environment");
   const [isMobile, setIsMobile] = useState(false);
-  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
-  const [cameraPermission, setCameraPermission] = useState(null);
+  const [cameraPermission, setCameraPermission] = useState("prompt");
+  const [videoStream, setVideoStream] = useState(null);
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
-  const streamRef = useRef(null);
 
   useEffect(() => {
     setIsMobile(
@@ -25,22 +23,19 @@ const PlantIdentifier = () => {
         navigator.userAgent,
       ),
     );
-
-    // Check for camera permission on load
     checkCameraPermission();
+  }, []);
 
-    window.addEventListener("beforeinstallprompt", (e) => {
-      e.preventDefault();
-      console.log("PWA install prompt detected");
-      setShowInstallPrompt(true);
-    });
-
+  useEffect(() => {
+    if (videoRef.current && videoStream) {
+      videoRef.current.srcObject = videoStream;
+    }
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+      if (videoStream) {
+        videoStream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [videoStream]);
 
   const checkCameraPermission = async () => {
     try {
@@ -49,7 +44,7 @@ const PlantIdentifier = () => {
       result.onchange = () => setCameraPermission(result.state);
     } catch (error) {
       console.error("Error checking camera permission:", error);
-      setCameraPermission("denied");
+      setCameraPermission("prompt");
     }
   };
 
@@ -57,6 +52,7 @@ const PlantIdentifier = () => {
     try {
       await navigator.mediaDevices.getUserMedia({ video: true });
       setCameraPermission("granted");
+      initializeCamera();
     } catch (error) {
       console.error("Error requesting camera permission:", error);
       setCameraPermission("denied");
@@ -66,29 +62,16 @@ const PlantIdentifier = () => {
     }
   };
 
-  useEffect(() => {
-    if (showCamera && cameraPermission === "granted") {
-      initializeCamera();
-    }
-  }, [showCamera, cameraPermission, facingMode]);
-
   const initializeCamera = async () => {
     try {
+      console.log("Initializing camera...");
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: isMobile ? { facingMode: facingMode } : true,
+        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
       });
-
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      } else {
-        setError("Video element not available. Please try again.");
-      }
+      console.log("Camera stream obtained:", stream);
+      setVideoStream(stream);
+      setShowCamera(true);
+      setError(null);
     } catch (err) {
       console.error("Error accessing camera:", err);
       setError(
@@ -107,11 +90,10 @@ const PlantIdentifier = () => {
   };
 
   const handleCameraCapture = () => {
-    if (cameraPermission !== "granted") {
-      requestCameraPermission();
+    if (cameraPermission === "granted") {
+      initializeCamera();
     } else {
-      setShowCamera(true);
-      setError(null);
+      requestCameraPermission();
     }
   };
 
@@ -123,16 +105,13 @@ const PlantIdentifier = () => {
       canvas.getContext("2d").drawImage(videoRef.current, 0, 0);
       setImage(canvas.toDataURL("image/jpeg"));
       setShowCamera(false);
+      if (videoStream) {
+        videoStream.getTracks().forEach((track) => track.stop());
+        setVideoStream(null);
+      }
     } else {
+      console.error("Video element not found when capturing image");
       setError("Unable to capture image. Please try again.");
-    }
-  };
-
-  const switchCamera = () => {
-    if (isMobile) {
-      setFacingMode((prevMode) =>
-        prevMode === "user" ? "environment" : "user",
-      );
     }
   };
 
@@ -150,40 +129,15 @@ const PlantIdentifier = () => {
     setLoading(false);
   };
 
-  const handleInstallClick = async () => {
-    console.log("Install button clicked");
-    const promptEvent = window.deferredPrompt;
-    if (promptEvent) {
-      promptEvent.prompt();
-      const { outcome } = await promptEvent.userChoice;
-      console.log(
-        `User ${outcome === "accepted" ? "accepted" : "dismissed"} the install prompt`,
-      );
-      window.deferredPrompt = null;
-      setShowInstallPrompt(false);
-    } else {
-      console.log("No deferred prompt available");
-    }
-  };
-
   return (
     <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6">
       <h2 className="text-2xl font-bold text-green-800 mb-6">
         Plant Identifier
       </h2>
-      {showInstallPrompt && (
-        <button
-          onClick={handleInstallClick}
-          className="mb-4 w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-300 flex items-center justify-center"
-        >
-          <Download className="mr-2" size={20} />
-          Install App
-        </button>
-      )}
-      {cameraPermission === null && (
+      {cameraPermission === "prompt" && (
         <button
           onClick={requestCameraPermission}
-          className="mb-4 w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-yellow-600 transition duration-300"
+          className="mb-4 w-full bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600 transition duration-300"
         >
           Allow Camera Access
         </button>
@@ -237,30 +191,21 @@ const PlantIdentifier = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          <video
-            ref={videoRef}
-            className="w-full h-64 object-cover rounded-md"
-            autoPlay
-            playsInline
-          />
-          <div className="flex justify-center space-x-4">
-            <button
-              onClick={captureImage}
-              className="flex items-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-300"
-            >
-              <Camera className="mr-2" size={20} />
-              Capture Image
-            </button>
-            {isMobile && (
-              <button
-                onClick={switchCamera}
-                className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300"
-              >
-                <RotateCcw className="mr-2" size={20} />
-                Switch Camera
-              </button>
-            )}
+          <div className="relative w-full h-64 bg-gray-200 rounded-md">
+            <video
+              ref={videoRef}
+              className="absolute top-0 left-0 w-full h-full object-cover rounded-md"
+              autoPlay
+              playsInline
+            />
           </div>
+          <button
+            onClick={captureImage}
+            className="w-full flex justify-center items-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-300"
+          >
+            <Camera className="mr-2" size={20} />
+            Capture Image
+          </button>
         </div>
       )}
       {error && <p className="text-red-500 mt-2">{error}</p>}
