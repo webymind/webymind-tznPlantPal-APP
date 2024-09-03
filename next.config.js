@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ["localhost"],
+    domains: ["https://plantpal-tizardin.netlify.app/"],
   },
 
   env: {
