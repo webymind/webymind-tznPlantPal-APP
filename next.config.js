@@ -9,7 +9,7 @@ const withPWA = require("next-pwa")({
 const nextConfig = withPWA({
   reactStrictMode: true,
   images: {
-    domains: ["tizardin-plantpal.netlify.app", "localhost"],
+    domains: ["tizardin-plantpal.netlify.app"],
   },
   env: {
     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,

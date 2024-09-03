@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import PlantInfo from "./PlantInfo";
 import { identifyPlant } from "../lib/gemini";
-import { Camera, Upload, Loader, RotateCcw } from "lucide-react";
+import { Camera, Upload, Loader, RotateCcw, Download } from "lucide-react";
 
 const PlantIdentifier = () => {
   const [image, setImage] = useState(null);
@@ -14,6 +14,7 @@ const PlantIdentifier = () => {
   const [facingMode, setFacingMode] = useState("environment");
   const [isMobile, setIsMobile] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [cameraPermission, setCameraPermission] = useState(null);
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -24,6 +25,9 @@ const PlantIdentifier = () => {
         navigator.userAgent,
       ),
     );
+
+    // Check for camera permission on load
+    checkCameraPermission();
 
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
@@ -38,23 +42,41 @@ const PlantIdentifier = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (showCamera) {
-      initializeCamera();
-    } else {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
+  const checkCameraPermission = async () => {
+    try {
+      const result = await navigator.permissions.query({ name: "camera" });
+      setCameraPermission(result.state);
+      result.onchange = () => setCameraPermission(result.state);
+    } catch (error) {
+      console.error("Error checking camera permission:", error);
+      setCameraPermission("denied");
     }
-  }, [showCamera, facingMode]);
+  };
+
+  const requestCameraPermission = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true });
+      setCameraPermission("granted");
+    } catch (error) {
+      console.error("Error requesting camera permission:", error);
+      setCameraPermission("denied");
+      setError(
+        "Camera permission denied. Please enable camera access in your browser settings.",
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (showCamera && cameraPermission === "granted") {
+      initializeCamera();
+    }
+  }, [showCamera, cameraPermission, facingMode]);
 
   const initializeCamera = async () => {
     try {
-      console.log("Requesting camera permission...");
       const stream = await navigator.mediaDevices.getUserMedia({
         video: isMobile ? { facingMode: facingMode } : true,
       });
-      console.log("Camera permission granted");
 
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -65,7 +87,6 @@ const PlantIdentifier = () => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       } else {
-        console.error("Video element not available");
         setError("Video element not available. Please try again.");
       }
     } catch (err) {
@@ -86,8 +107,12 @@ const PlantIdentifier = () => {
   };
 
   const handleCameraCapture = () => {
-    setShowCamera(true);
-    setError(null);
+    if (cameraPermission !== "granted") {
+      requestCameraPermission();
+    } else {
+      setShowCamera(true);
+      setError(null);
+    }
   };
 
   const captureImage = () => {
@@ -99,7 +124,6 @@ const PlantIdentifier = () => {
       setImage(canvas.toDataURL("image/jpeg"));
       setShowCamera(false);
     } else {
-      console.error("Video element not available for capture");
       setError("Unable to capture image. Please try again.");
     }
   };
@@ -150,9 +174,18 @@ const PlantIdentifier = () => {
       {showInstallPrompt && (
         <button
           onClick={handleInstallClick}
-          className="mb-4 w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-300"
+          className="mb-4 w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-300 flex items-center justify-center"
         >
+          <Download className="mr-2" size={20} />
           Install App
+        </button>
+      )}
+      {cameraPermission === null && (
+        <button
+          onClick={requestCameraPermission}
+          className="mb-4 w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-yellow-600 transition duration-300"
+        >
+          Allow Camera Access
         </button>
       )}
       {!showCamera ? (
@@ -168,6 +201,7 @@ const PlantIdentifier = () => {
             <button
               onClick={handleCameraCapture}
               className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300"
+              disabled={cameraPermission === "denied"}
             >
               <Camera className="mr-2" size={20} />
               Take Photo
