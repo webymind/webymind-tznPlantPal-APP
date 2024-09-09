@@ -23,7 +23,7 @@ export default function Home() {
 
       <footer className="bg-[#82be34] text-white py-4">
         <div className="container mx-auto px-4 text-center">
-          <p>&copy; 2024 Tizardin.mu. All rights reserved.</p>
+           <p>&copy; 2024 <a href="https://tizardin.mu" className="hover:underline" target="_blank" rel="noopener noreferrer">Tizardin.mu</a>. All rights reserved.</p>
         </div>
       </footer>
     </div>
