@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
+  --foreground-rgb: 51, 51, 51; /* Darker gray instead of pure black */
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
 }
 
-body {
+/* body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
@@ -16,19 +16,30 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+} */
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      rgba(var(--background-start-rgb), 0.8),
+      rgba(var(--background-end-rgb), 0.9)
+    )
+    rgb(var(--background-start-rgb));
 }
 
 
 custom-bg {
-  background: rgba(255, 255, 255, 0.2); /* White with 20% opacity */
+  background: rgba(255, 255, 255, 0.9); /* Increased opacity for better contrast */
 }
+
 custom-box-shadow {
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); /* Black with 10% opacity */
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2); /* Slightly darker shadow */
 }
 custom-border {
-  border: 1px solid rgba(255, 255, 255, 0.3); /* White with 30% opacity */
+  border: 1px solid rgba(255, 255, 255, 0.5); /* Increased opacity for border */
 }
 custom-backdrop {
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
