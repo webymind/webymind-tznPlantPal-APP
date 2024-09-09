@@ -9,7 +9,7 @@ export default function Home() {
       <header className="bg-[#82be34] text-white py-4">
         <div className="container mx-auto px-4 flex items-center">
           <Leaf className="mr-2" size={24} />
-          <h1 className="text-2xl font-bold">Plant Pal App</h1>
+          <h1 className="text-2xl font-bold">Tizardin AI Plant Pal</h1>
         </div>
       </header>
 
